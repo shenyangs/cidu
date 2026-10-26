@@ -1,0 +1,48 @@
+name: Build and tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS arm64
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcrun swiftc --version
+          xcrun --sdk macosx --show-sdk-version
+          cmake --version
+          python3 --version
+      - name: Core regression checks
+        run: bash scripts/test.sh
+      - name: Preflight checks
+        run: bash scripts/test-preflight.sh
+      - name: Build app and CLI
+        run: bash scripts/build.sh
+      - name: Validate public packages and file manifest
+        run: |
+          python3 scripts/package-public.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          manifest = {line.strip() for line in Path('scripts/public-files.txt').read_text().splitlines() if line.strip() and not line.startswith('#')}
+          tracked = set(subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')) - {''}
+          assert tracked == manifest, f'Public manifest mismatch: missing={manifest - tracked}, extra={tracked - manifest}'
+          print(f'PASS: {len(manifest)} tracked files match the public source manifest')
+          PY

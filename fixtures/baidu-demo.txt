@@ -1,0 +1,4 @@
+示例(shi|li) 55000
+重庆(chong|qing) 60001
+重庆(zhong|qing) 42
+𠮷野(ji|ye) 7

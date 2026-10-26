@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
+  <title id="title">词渡 Cidu</title>
+  <desc id="desc">Your words. A new home. Two dictionary cards connected by an arrow.</desc>
+  <rect width="1200" height="340" rx="24" fill="#F4F2EC"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">
+    <path d="M52 48h52" stroke="#267A61" stroke-width="5"/>
+    <text x="48" y="147" fill="#202823" font-size="88" font-weight="650" letter-spacing="-4">Cidu</text>
+    <text x="268" y="143" fill="#267A61" font-size="60" font-weight="500">词渡</text>
+    <text x="52" y="201" fill="#46534B" font-size="32" letter-spacing="-.6">Your words. A new home.</text>
+    <text x="54" y="282" fill="#5D6D62" font-size="14" font-weight="600" letter-spacing="2">LOCAL FIRST / MADE FOR macOS</text>
+    <g transform="translate(718 60)">
+      <rect x="0" y="13" width="164" height="195" rx="16" fill="#E5E9E0" stroke="#D8DED4"/>
+      <rect x="18" y="32" width="36" height="5" rx="2.5" fill="#95A68D"/>
+      <rect x="18" y="61" width="128" height="47" rx="8" fill="#FDFCF8"/>
+      <text x="31" y="91" fill="#53634E" font-size="19">ni hao</text>
+      <rect x="18" y="119" width="128" height="47" rx="8" fill="#FDFCF8"/>
+      <text x="31" y="149" fill="#53634E" font-size="19">ji xu</text>
+      <rect x="227" width="182" height="220" rx="18" fill="#267A61"/>
+      <rect x="247" y="21" width="40" height="5" rx="2.5" fill="#A7D0BE"/>
+      <rect x="247" y="50" width="142" height="54" rx="9" fill="#FFFFFF" fill-opacity=".14"/>
+      <text x="265" y="85" fill="#FFFFFF" font-size="25" font-weight="500">你好</text>
+      <rect x="247" y="116" width="142" height="54" rx="9" fill="#FFFFFF" fill-opacity=".14"/>
+      <text x="265" y="151" fill="#FFFFFF" font-size="25" font-weight="500">继续</text>
+      <path d="M152 108h81m-13-13 13 13-13 13" fill="none" stroke="#202823" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="384" cy="202" r="23" fill="#E0EDB8" stroke="#F4F2EC" stroke-width="5"/>
+      <path d="m375 202 6 6 12-13" fill="none" stroke="#267A61" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
