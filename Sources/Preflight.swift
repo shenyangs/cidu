@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-enum PreflightAction: String { case accessibility = "查看授权步骤", inputSettings = "打开输入法设置", sourceApp = "打开百度输入法", file = "选择已有词库文件", advanced = "打开文件工具" }
+enum PreflightAction: String { case accessibility = "查看授权步骤", inputSettings = "打开输入法设置", sourceApp = "打开百度输入法", file = "选择已有词库文件", advanced = "打开文件工具", shandianshuo = "读取并核对词典" }
 struct PreflightCheck: Identifiable {
     let id: String
     let title: String
@@ -18,7 +18,7 @@ struct PreflightReport {
     var canBegin: Bool { !checks.isEmpty && checks.allSatisfy { $0.passed || $0.id == "permission" } }
 }
 enum Preflight {
-    static let names = ["百度输入法":"BaiduIM.app", "豆包输入法":"DoubaoIme.app", "搜狗输入法":"SogouInput.app", "鼠须管 Rime":"Squirrel.app", "QQ 输入法":"QQInput.app", "微信输入法":"WeType.app"]
+    static let names = ["百度输入法":"BaiduIM.app", "豆包输入法":"DoubaoIme.app", "搜狗输入法":"SogouInput.app", "鼠须管 Rime":"Squirrel.app", "QQ 输入法":"QQInput.app", "微信输入法":"WeType.app", "闪电说":"闪电说.app"]
     static func installation(_ name: String) -> (URL?,String) {
         if name == "系统拼音" { return (nil,"macOS 内置") }
         guard let filename = names[name] else { return (nil,"未识别") }
@@ -38,9 +38,16 @@ enum Preflight {
         func add(_ id:String,_ title:String,_ ok:Bool,_ detail:String,_ action:PreflightAction? = nil) { checks.append(.init(id:id,title:title,passed:ok,detail:detail,action:ok ? nil : action)) }
         if let file {
             do {
-                let imported = try Formats.read(Lexicon.boundedRead(file))
+                let format: InputFormat = source == "闪电说" && file.pathExtension.lowercased() == "md" ? .shandianshuo : .auto
+                let imported = try MigrationInput.read(file, as: format).imported
                 add("source","来源文件",!imported.entries.isEmpty,imported.entries.isEmpty ? "文件没有可迁移词条，请重新选择。" : "可读取 · \(imported.entries.count.formatted()) 条；合并时继续核验编码。",.file)
+                if imported.entries.contains(where: { $0.source == Shandianshuo.source }) {
+                    let reviewed = imported.entries.filter { $0.source == Shandianshuo.source && $0.hasBoundaries }.count
+                    add("pronunciation", "闪电说读音", reviewed > 0, reviewed > 0 ? "已核对 \(reviewed) 条；迁移拼音候选，语音纠错规则仅留档。" : "闪电说不提供拼音，请先核对读音。", .shandianshuo)
+                }
             } catch { add("source","来源文件",false,"文件无法读取或格式不支持，请重新选择，或用文件工具检查。",.file) }
+        } else if source == "闪电说" {
+            add("source-review", "闪电说词典", false, "选择词典副本并核对读音。无需安装闪电说；原文件与纠错规则会完整留档。", .shandianshuo)
         } else if source == "百度输入法" {
             add("source-installed","来源安装",sourceURL != nil,sourceURL == nil ? "请先安装百度输入法，或选择已有导出文件。" : sourceStatus,.file)
             if let sourceURL {

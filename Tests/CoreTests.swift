@@ -141,6 +141,7 @@ import Darwin
         let spaced = Entry(word: "示 例", syllables: ["shi", "li"], sourceValue: 1, source: "test")
         try fails("QQ whitespace blocked") { _ = try Formats.write([spaced], as: .qq) }
         try check(try Formats.read(Formats.write([spaced], as: .google)).entries[0].word == spaced.word, "Google word spaces retained")
+        try shandianshuoTests(in: dir)
         try macTests(in: dir)
         try migrationTests(in: dir)
         print("PASS \(checks) checks")

@@ -15,6 +15,7 @@ struct PreviewRow: Identifiable {
         case "sogou-pinyin-txt": return "搜狗 TXT"
         case "rime-dict": return "Rime 词典"
         case "doubao-macos": return "豆包 Mac"
+        case Shandianshuo.source: return "闪电说词典"
         default: return entry.source
         }
     }
@@ -148,6 +149,7 @@ enum Page: String, CaseIterable, Identifiable {
 
 struct AdvancedView: View {
     @StateObject private var model = Model()
+    @State private var showShandianshuo = false
     private let accent = Color(red: 0.30, green: 0.39, blue: 0.32)
     var body: some View {
         NavigationSplitView {
@@ -191,6 +193,9 @@ struct AdvancedView: View {
             if let i = CommandLine.arguments.firstIndex(of: "--source"), CommandLine.arguments.count > i+1 { model.load(URL(fileURLWithPath: CommandLine.arguments[i+1])) }
         }
         .onOpenURL { model.load($0) }
+        .sheet(isPresented: $showShandianshuo) {
+            ShandianshuoReview(initialData: model.sourceData) { model.load($0) }
+        }
     }
     func heading(_ title: String, _ subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 8) { Text(title).font(.system(size: 26, weight: .semibold)); Text(subtitle).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
@@ -223,6 +228,10 @@ struct AdvancedView: View {
             }
             if let imported = model.imported {
                 ForEach(imported.warnings, id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
+                if imported.format == .shandianshuo {
+                    Button("核对闪电说词条的拼音…") { showShandianshuo = true }.disabled(model.busy)
+                    Text("重新核对将从原件开始。生成的迁移包也可在迁移首页选择，用于导入豆包。").font(.caption).foregroundStyle(.secondary)
+                }
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("词条预览").font(.headline)

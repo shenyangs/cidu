@@ -23,7 +23,7 @@ enum CiduCLI {
             switch command {
             case "help", "--help":
                 guard tail.isEmpty else { throw MigrationError("help 不接受参数。") }
-                emit(["ok":true,"version":version,"commands":["status [--file PATH]","plan [--file PATH]","apply ID --confirm [--allow-partial]","history","restore ID --confirm"],"route":"百度自动导出或已有导出文件 → 豆包","planLifetimeHours":24,"privacy":"默认输出统计，不输出词语；plan 只写本机私有备份，不安装词库。"])
+                emit(["ok":true,"version":version,"commands":["status [--file PATH]","plan [--file PATH]","apply ID --confirm [--allow-partial]","history","restore ID --confirm"],"route":"百度自动导出、已有导出文件或词渡迁移包 → 豆包","shandianshuo":"先在词渡界面核对闪电说词条的拼音，再将保存的迁移包文件夹传给 --file。迁移拼音候选，语音纠错规则仅留档。","planLifetimeHours":24,"privacy":"默认输出统计，不输出词语；plan 只写本机私有备份，不安装词库。"])
             case "status", "plan":
                 let file: URL?
                 if tail.isEmpty { file = nil }

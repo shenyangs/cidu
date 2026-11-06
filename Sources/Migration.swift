@@ -11,7 +11,8 @@ enum DoubaoMerge {
         var accepted = [Entry](), rejected = [RejectedEntry]()
         for (i, e) in entries.enumerated() {
             let reason: String?
-            if !e.hasBoundaries || e.syllables.isEmpty { reason = "缺少可靠音节边界" }
+            if e.codeKind == "unpronounced" { reason = "尚未核对拼音，已保留原词条" }
+            else if !e.hasBoundaries || e.syllables.isEmpty { reason = "缺少可靠音节边界" }
             else if !e.syllables.allSatisfy({ mapping[$0.lowercased()].map { (0...65535).contains($0) } == true }) { reason = "编码未通过目标引擎验证" }
             else if e.word.isEmpty || e.syllables.count >= 32768 || 4 + e.syllables.joined().lowercased().utf8.count + 2 * e.word.utf16.count >= 65536 { reason = "超过目标词条长度上限" }
             else { reason = nil }

@@ -7,7 +7,7 @@ struct MigrationView: View {
     @State private var showCheckDetails = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    private let sources = ["百度输入法","搜狗输入法","鼠须管 Rime","QQ 输入法","微信输入法","系统拼音"]
+    private let sources = ["百度输入法","闪电说","搜狗输入法","鼠须管 Rime","QQ 输入法","微信输入法","系统拼音"]
     private let targets = ["豆包输入法","百度输入法","搜狗输入法","鼠须管 Rime","微信输入法","系统拼音"]
     private let phases = ["读取词库","合并词条","引擎验证","安装完成"]
     var body: some View {
@@ -84,6 +84,7 @@ struct MigrationView: View {
             }
         }.frame(minWidth:820,minHeight:650)
         .sheet(isPresented:$model.showAdvanced) { VStack { HStack { Spacer(); Button("返回迁移") { model.showAdvanced = false } }.padding(12); AdvancedView() }.frame(width:1060,height:800) }
+        .sheet(isPresented:$model.showShandianshuo) { ShandianshuoReview { model.file = $0 } }
         .sheet(isPresented:$showAgentGuide) { AgentGuide() }
         .sheet(isPresented:$model.showPermissionGuide,onDismiss:model.permissionGuideDismissed) { PermissionGuide(model:model) }
         .onReceive(Timer.publish(every:2,on:.main,in:.common).autoconnect()) { _ in model.pollPermission() }

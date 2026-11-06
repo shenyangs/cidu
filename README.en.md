@@ -35,12 +35,14 @@ Cidu brings reading, compatibility checks, conversion, backups, and migration in
 
 ## Get started
 
+> **New on main: FlashSay dictionary migration (0.9.0 source preview).** FlashSay 0.8.1 was installed in a macOS 15.7.7 VM to test real dictionary saves, persistence after restart, and Cidu's pronunciation review. The notarized **0.8.0 download above does not include this feature**. [Build from source](#build-from-source) to try it.
+
 1. Download the [DMG](https://github.com/shenyangs/cidu/releases/download/v0.8.0/Cidu-0.8.0-macOS-arm64.dmg), drag **词渡** into Applications, and open it. Release binaries are Developer ID signed and Apple notarized.
 2. Choose the source and destination, then resolve any pending checks. Automatic Baidu export requires you to grant Accessibility permission in System Settings. An existing export file can be used instead.
 3. Review the plan. When some entries need adaptation, Cidu shows separate counts for new, existing, and unmigrated entries. Partial installation requires an explicit choice to migrate only verified entries.
 4. Check sample words in the destination input method, then restart it and check again. Migration history can restore the previous backup; restoration refuses to overwrite a dictionary that has learned new content since migration.
 
-Release binaries target **Apple Silicon** with a **macOS 13** deployment minimum. Hands-on testing used macOS 27.0.1; other OS versions, Intel, and a second device have not been tested. The app UI is currently in Chinese.
+Release binaries target **Apple Silicon** with a **macOS 13** deployment minimum. Hands-on testing used macOS 27.0.1; the 0.9 source preview also passed the FlashSay reading and review flow in a macOS 15.7.7 VM. macOS 13, Intel, and a second physical device remain untested. The app UI is currently in Chinese.
 
 <details>
 <summary><strong>See the app</strong></summary>
@@ -50,6 +52,19 @@ Release binaries target **Apple Silicon** with a **macOS 13** deployment minimum
 This read-only preflight screenshot shows the current machine after Doubao updated to 1.0.3. The version gate correctly blocks automatic installation. No personal dictionary entries are shown.
 
 </details>
+
+## Bring your FlashSay vocabulary along
+
+FlashSay's dictionary stores preferred spellings and correction rules, without pinyin. Cidu adds a pronunciation review before passing those words into the existing Doubao migration flow.
+
+1. In the new build, choose **闪电说 → 豆包输入法**, then **读取并核对词典** (read and review).
+2. Select `DICTIONARY.md` from FlashSay's library, or a copy from another computer. FlashSay does not need to be installed locally.
+3. Review each locally generated pinyin suggestion and check **读音已核对**. Correct names and polyphonic characters manually. Latin and mixed-script words start blank for manual input.
+4. Choose **保存并继续** (save and continue). The original file, correction rules, and unchecked entries stay in the archive. Review the migration plan after Doubao's compatibility checks pass.
+
+<p align="center"><img src="docs/assets/cidu-shandianshuo.png" alt="Actual VM review screen: four synthetic records, three confirmed pronunciations, and an English entry kept for later" width="900"></p>
+
+**This migrates pinyin candidates.** It does not transfer FlashSay's speech-recognition behavior or correction rules into Doubao. Source reading, review, and archiving have been tested; actual installation and candidate checks for this source are still pending. Doubao 1.0.3 remains blocked. See the bilingual [FlashSay guide](docs/SHANDIANSHUO.md) for file locations, examples, and validation scope.
 
 ## How migration works
 
@@ -71,6 +86,7 @@ Backups live in `~/Library/Application Support/Cidu/Transactions`, with `0700` d
 | Sogou Pinyin TXT | ✓ | ✓ | GBK; no SCEL / BIN; weights are not retained |
 | Rime / Squirrel `.dict.yaml` | ✓ | ✓ | Explicit full-pinyin text / code / weight columns; no import_tables expansion or userdb |
 | Doubao Mac `usr.dat` | ✓ | Archive | Preserve syllable IDs and raw attributes; automatic installation only for the adapted 1.0.2 engine |
+| FlashSay `DICTIONARY.md` (0.9 source) | ✓ | Archive / reviewed pinyin | Real 0.8.1 saves and restart persistence tested; correction text retained, speech rules not transferred |
 | QQ Pinyin TXT | ✓ | ✓ | Three pinyin / text / frequency columns; UTF-16 LE output; no comma extensions, QPyd / Qcel |
 | Google Pinyin text | ✓ | ✓ | GBK text / frequency / pinyin columns for legacy dictionaries |
 | macOS Text Replacements PLIST | ✓ | ✓ | XML / binary input, XML output; use the official system drag-in / drag-out flow |
@@ -78,7 +94,7 @@ Backups live in `~/Library/Application Support/Cidu/Transactions`, with `0700` d
 | Complete WeType Mac LevelDB copy | Experimental | Recognized entries | Known keys only, full snapshot retained; no write-back or real-version validation |
 | Cidu JSON / TSV | ✓ | ✓ | Retain duplicates, alternate readings, raw fields, and internal codes; reopenable |
 
-Apart from the Baidu / Doubao testing noted above, real imports or deployment into the other input methods remain unverified. Not every format pair can be converted without loss:
+Apart from the Baidu / Doubao testing and FlashSay source reading noted above, real imports or deployment into the other input methods remain unverified. Not every format pair can be converted without loss:
 
 - **Encoding and frequency:** unsupported characters, ambiguous syllable boundaries, and unknown codes are never silently discarded. Rime exports use weight 1. Baidu values are retained for Baidu sources; other sources use placeholder 1. QQ / Google frequencies survive same-format exports only. Original values stay in JSON / TSV; candidate order, predictions, and learning history are not guaranteed to transfer.
 - **Pinyin and shortcuts:** users must confirm a Rime dictionary uses full pinyin. Shape codes and double pinyin cannot be identified reliably from structure alone. Shortcuts are modeled separately; learned dictionaries do not automatically become Text Replacements. System phrases support single-line values and known fields only.
@@ -100,6 +116,8 @@ The CLI ships inside the complete app. Adjust the path to your installation and 
 ```
 
 `status` only checks the environment. `plan` prepares private candidates and backups and validates an isolated copy; it does not install the dictionary. Omitting `--file` operates Baidu's official export window and requires the relevant permissions. Plans expire after 24 hours.
+
+In 0.9, `--file` also accepts a verified Cidu migration-bundle directory. For FlashSay, review pronunciations and save the bundle in the GUI first, then pass that directory to the CLI. Raw Markdown does not contain confirmed pinyin.
 
 After the user has authorized installation or restoration, use the following commands. A partial migration also requires explicit acceptance before adding `--allow-partial`:
 
@@ -132,6 +150,13 @@ open "build/词渡.app"
 If the Apple toolchain is missing, run `xcode-select --install` first. Confirm that `xcrun --sdk macosx --show-sdk-version` is at least 26. Install CMake from its [official downloads](https://cmake.org/download/), or, with uv available, check the fallback using `uvx --from cmake==3.31.6 cmake --version`.
 
 Development builds use ad-hoc signing, unlike notarized releases. `VERSION` / `BUILD_NUMBER` are the single version source. `python3 scripts/package-public.py` creates the source ZIP, Skill ZIP, and release checksums from an [explicit file manifest](scripts/public-files.txt). See [CONTRIBUTING.md](CONTRIBUTING.md) for signing, notarization, architecture, and test boundaries.
+
+## main / 0.9.0 source preview
+
+- Read FlashSay dictionaries, review pinyin per row, and retain the complete source.
+- GUI and CLI share integrity-checked migration bundles; unchecked entries cannot reach the merge step.
+- Tested real FlashSay 0.8.1 and Cidu's review flow on a macOS 15.7.7 VM; **203 core checks + 23 preflight checks** pass.
+- No new notarized download has been published; actual Doubao installation and candidate behavior for this source remain unverified.
 
 ## What's new in 0.8.0
 

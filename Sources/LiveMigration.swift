@@ -67,11 +67,11 @@ enum MigrationWorker {
         try MigrationStore.privateFolder(session)
         defer { try? FileManager.default.removeItem(at:session) }
         let source: Data
-        if let file { source = try Lexicon.boundedRead(file) }
+        let entries: [Entry]
+        if let file { let input = try MigrationInput.read(file); source = input.original; entries = input.imported.entries }
         else { source = try BaiduAutomation.export(to:session.appendingPathComponent("source.txt"),cancelled:cancelled,progress: { message in
             tick(.init(phase:0,fraction:0,count:0,total:0,word:"",message:message))
-        }) }
-        let entries = try Formats.read(source).entries
+        }); entries = try Formats.read(source).entries }
         try check()
         tick(.init(phase:0,fraction:1,count:entries.count,total:entries.count,word:"",message:"已读取 \(entries.count.formatted()) 条词条"))
         let original = try Lexicon.boundedRead(target)
@@ -162,6 +162,7 @@ enum MigrationWorker {
     @Published var showWords = false
     @Published var showHistory = false
     @Published var showAdvanced = false
+    @Published var showShandianshuo = false
     @Published var showPermissionGuide = false
     private let cancellation = MigrationCancellation()
     @Published var preflight: PreflightReport?
@@ -196,6 +197,7 @@ enum MigrationWorker {
     }
     func remedy(_ action: PreflightAction) {
         switch action {
+        case .shandianshuo: showShandianshuo = true
         case .file: chooseFile()
         case .advanced: showAdvanced = true
         case .accessibility: showPermissionGuide = true
@@ -205,7 +207,7 @@ enum MigrationWorker {
         }
     }
     func chooseFile() {
-        let p = NSOpenPanel(); p.message = "可选：使用已经导出的词库文件"; p.canChooseDirectories = false
+        let p = NSOpenPanel(); p.message = "选择已经导出的词库文件，或词渡迁移包文件夹"; p.canChooseDirectories = true
         if p.runModal() == .OK { file = p.url }
     }
     func cancel() { cancellation.set(true) }

@@ -5,10 +5,12 @@ app="$PWD/build/词渡.app"
 version="$(cat VERSION)"
 build_number="$(cat BUILD_NUMBER)"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$build_number" =~ ^[0-9]+$ ]] || { echo "Invalid release version" >&2; exit 1; }
+# Rebuild the generated bundle without stale resources or a prior release's ticket.
+rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 source scripts/storage.sh
-swiftc -O -parse-as-library Sources/Core.swift Sources/Formats.swift Sources/Compatibility.swift Sources/MacFormats.swift Sources/WeType.swift Sources/Migration.swift Sources/BaiduAutomation.swift Sources/PermissionGuide.swift Sources/Preflight.swift Sources/LiveMigration.swift Sources/AgentGuide.swift Sources/MigrationView.swift Sources/App.swift "${storage_flags[@]}" -o "$app/Contents/MacOS/Cidu" -framework SwiftUI -framework AppKit -framework Carbon -target arm64-apple-macosx13.0
-swiftc -O -parse-as-library -D CIDU_CLI Sources/Core.swift Sources/Formats.swift Sources/Compatibility.swift Sources/MacFormats.swift Sources/WeType.swift Sources/Migration.swift Sources/BaiduAutomation.swift Sources/PermissionGuide.swift Sources/Preflight.swift Sources/LiveMigration.swift Sources/CLI.swift "${storage_flags[@]}" -o "$app/Contents/MacOS/cidu-cli" -framework SwiftUI -framework AppKit -framework Carbon -target arm64-apple-macosx13.0
+swiftc -O -parse-as-library Sources/Core.swift Sources/Formats.swift Sources/Shandianshuo.swift Sources/Compatibility.swift Sources/MacFormats.swift Sources/WeType.swift Sources/Migration.swift Sources/BaiduAutomation.swift Sources/PermissionGuide.swift Sources/Preflight.swift Sources/LiveMigration.swift Sources/AgentGuide.swift Sources/MigrationView.swift Sources/ShandianshuoReview.swift Sources/App.swift "${storage_flags[@]}" -o "$app/Contents/MacOS/Cidu" -framework SwiftUI -framework AppKit -framework Carbon -target arm64-apple-macosx13.0
+swiftc -O -parse-as-library -D CIDU_CLI Sources/Core.swift Sources/Formats.swift Sources/Shandianshuo.swift Sources/Compatibility.swift Sources/MacFormats.swift Sources/WeType.swift Sources/Migration.swift Sources/BaiduAutomation.swift Sources/PermissionGuide.swift Sources/Preflight.swift Sources/LiveMigration.swift Sources/CLI.swift "${storage_flags[@]}" -o "$app/Contents/MacOS/cidu-cli" -framework SwiftUI -framework AppKit -framework Carbon -target arm64-apple-macosx13.0
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -2,11 +2,12 @@ import Foundation
 import CoreFoundation
 
 enum InputFormat: String, CaseIterable, Identifiable {
-    case auto, archive, tsv, baidu, rime, sogou, qq, google, apple, microsoft, wetype, doubao
+    case auto, archive, tsv, baidu, rime, sogou, qq, google, apple, microsoft, wetype, doubao, shandianshuo
     var id: String { rawValue }
     var title: String {
         switch self {
         case .auto: return "自动识别"
+        case .shandianshuo: return "闪电说 · 词典 Markdown"
         case .apple: return "macOS 系统 · 自定义短语"
         case .microsoft: return "微软拼音 · 迁入 Mac 的短语文件"
         case .wetype: return "微信 Mac · 词库副本（实验）"
@@ -22,10 +23,11 @@ enum InputFormat: String, CaseIterable, Identifiable {
     }
     var help: String {
         switch self {
+        case .shandianshuo: return "选择闪电说资料库的 DICTIONARY.md 副本。读取普通词条和「错写 → 正确写法」规则；迁移拼音候选前需核对读音。"
         case .apple: return "选择系统设置 → 键盘 → 文本替换导出的 .plist。仅包含自定义短语，不包含自动学习词库。"
         case .microsoft: return "读取 mschxudp 自定义短语文件，可转换为 Mac 系统短语。微软拼音是 Windows 来源，不是 Mac 目标。"
         case .wetype: return "选择已退出微信输入法后复制的完整 LevelDB 文件夹。实验性读取已知短语键；不保证覆盖所有学习记录，不写回输入法。"
-        case .auto: return "按文件内容识别。新增系统短语 PLIST、微软短语文件与微信 Mac 数据库副本。支持百度、搜狗 / QQ 拼音 TXT、谷歌拼音文本、Rime 拼音词典、豆包主词库，以及词渡 JSON / TSV。"
+        case .auto: return "按文件内容识别百度、搜狗 / QQ / 谷歌拼音文本、Rime、豆包、系统短语、微软短语、微信副本与词渡 JSON / TSV。闪电说 DICTIONARY.md 请明确选择「闪电说」格式；普通 Markdown 不自动猜测。"
         case .archive: return "重新打开词渡完整档案，保留每条记录、来源和原始字段。"
         case .tsv: return "接受词渡导出的带列名 TSV；不猜测其他表格的列含义。"
         case .baidu: return "百度设置 → 词库 → 用户词库 → 导出。原生 usr3user.bin 暂不支持。"
@@ -103,9 +105,9 @@ enum Formats {
         guard !entries.isEmpty, entries.count <= 1_000_000 else { throw MigrationError("词库为空或超过 100 万条。") }
         func valid(_ s: String) -> Bool { !s.isEmpty && !s.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) || $0.value == 0x2028 || $0.value == 0x2029 } }
         for (i, e) in entries.enumerated() {
-            guard valid(e.word), valid(e.source), (e.codeKind == "shortcut" ? e.syllables.count == 1 : !e.syllables.isEmpty),
+            guard valid(e.word), valid(e.source), (e.codeKind == "unpronounced" ? e.syllables.isEmpty : e.codeKind == "shortcut" ? e.syllables.count == 1 : !e.syllables.isEmpty),
                   e.syllables.allSatisfy({ e.codeKind == "shortcut" ? ($0.isEmpty || valid($0)) : (valid($0) && !$0.contains(" ")) }),
-                  e.codeKind == nil || ["syllables", "continuous", "native", "shortcut"].contains(e.codeKind!),
+                  e.codeKind == nil || ["syllables", "continuous", "native", "shortcut", "unpronounced"].contains(e.codeKind!),
                   e.nativeSyllables == nil || (!e.nativeSyllables!.isEmpty && e.nativeSyllables!.allSatisfy { (0...65535).contains($0) }),
                   e.nativeAttributes == nil || (e.nativeAttributes!.count == 4 && e.nativeAttributes!.allSatisfy { (0...Int(UInt32.max)).contains($0) }),
                   e.sourceRawValue == nil || valid(e.sourceRawValue!) else {
@@ -127,6 +129,7 @@ enum Formats {
                     format = object?["schema"] as? String == "cidu.wetype-snapshot.v1" ? .wetype : .archive
                 }
                 else if s.hasPrefix("word\tpinyin\tsource_value\tsource") { format = .tsv }
+                else if s == "# 用户词典" || s.hasPrefix("# 用户词典\n") || s.hasPrefix("# 用户词典\r\n") { format = .shandianshuo }
                 else if s.contains("\n---") || s.hasPrefix("---") { format = .rime }
                 else if s.components(separatedBy: .newlines).first.map({ $0.components(separatedBy: "\t").count == 3 }) == true { format = .google }
                 else if let first = s.components(separatedBy: .newlines).first, first.split(whereSeparator: { $0 == " " || $0 == "\t" }).count == 3, first.contains("(") == false { format = .qq }
@@ -136,6 +139,7 @@ enum Formats {
         }
         let entries: [Entry]; var warnings = [String]()
         switch format {
+        case .shandianshuo: return try Shandianshuo.read(data)
         case .archive:
             let a: Archive
             do { a = try JSONDecoder().decode(Archive.self, from: data) }
@@ -169,6 +173,7 @@ enum Formats {
         }
         try validate(entries)
         if entries.contains(where: { $0.source == "wetype-macos-experimental" }) { warnings.append("微信实验性档案仅含已识别短语，不代表完整学习词库。完整源快照请保留原迁移包。") }
+        if entries.contains(where: { $0.source == Shandianshuo.source }) { warnings.append(Shandianshuo.warning) }
         return ImportResult(entries: entries, format: format, warnings: warnings)
     }
     static func parseTSV(_ data: Data) throws -> [Entry] {
@@ -183,6 +188,10 @@ enum Formats {
             if c.count == 8 {
                 e.codeKind = c[4].isEmpty ? nil : c[4]
                 if e.codeKind == "shortcut" { e = Entry(word: c[0], syllables: [c[1]], sourceValue: n, source: c[3], codeKind: "shortcut") }
+                if e.codeKind == "unpronounced" {
+                    guard c[1].isEmpty else { throw MigrationError("未核对读音的 TSV 行不能带有拼音。") }
+                    e = Entry(word: c[0], syllables: [], sourceValue: n, source: c[3], codeKind: "unpronounced")
+                }
                 func numbers(_ s: String) throws -> [Int]? {
                     if s.isEmpty { return nil }
                     let parts = s.components(separatedBy: ","); let values = parts.compactMap(Int.init)
@@ -269,6 +278,7 @@ enum Formats {
         if format == .archive || format == .tsv { return nil }
         if format == .apple { return e.codeKind == "shortcut" && e.syllables.count == 1 ? nil : "需要明确的短语缩写，不能把拼音学习词条当作文本替换" }
         if e.codeKind == "shortcut" { return "自定义短语缩写不是拼音" }
+        if e.codeKind == "unpronounced" { return "词条尚未核对拼音；可先保存完整档案" }
         if !e.hasBoundaries { return "缺少可靠的音节边界" }
         if format == .baidu {
             if e.word.contains("(") || e.word.contains(")") || e.syllables.contains(where: { $0.contains("|") || $0.contains("(") || $0.contains(")") }) { return "包含百度文本分隔符" }
